@@ -1,0 +1,42 @@
+name: Run pytest
+
+# Controls when the workflow will run
+on:
+    # Triggers the workflow on push or pull request events but only for the "master" branch
+    push:
+        branches:
+            - "main"
+            - "backend/**"
+    pull_request:
+        branches: [ "main" ]
+
+    # Allows you to run this workflow manually from the Actions tab
+    workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+    # This workflow contains a single job called "build"
+    test-backend:
+        # The type of runner that the job will run on
+        runs-on: ubuntu-latest
+
+        # Steps represent a sequence of tasks that will be executed as part of the job
+        steps:
+            - name: Install libreoffice
+              run: sudo apt install -y libreoffice
+            - uses: actions/checkout@v4
+            - name: Set up Python 3.10
+              uses: actions/setup-python@v3
+              with:
+                python-version: "3.10"
+            - name: Install poppler
+              run: sudo apt install -y poppler-utils libpoppler-cpp-dev
+            - name: Install dependencies
+              run: |
+                python -m pip install --upgrade pip
+                if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
+                if [ -f frontend/requirements.txt ]; then pip install -r frontend/requirements.txt; fi
+                if [ -f tests/requirements.txt ]; then pip install -r tests/requirements.txt; fi
+            - name: Test with pytest-cov
+              run: |
+                coverage run -m pytest -v -s
