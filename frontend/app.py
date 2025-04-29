@@ -66,10 +66,14 @@ with tab2:
 	# shows default prompt(change later) and allows to change it
 	with open("frontend/default_prompt.txt", "r") as f:
 		file = f.read()
-	text = st.text_area("Текст:", value=file, height=700)
+	text = st.text_area("Запрос:", value=file, height=400)
 
-	# saves changed prompt to store it
+	# saves changed prompt
 	if st.button("Изменить текст запроса"):
-		with open("frontend/test.txt", "w") as f:
-			f.write(text)
-			st.toast("Текст запроса обновлен", icon="✅")
+		#  checks if prompt is empty
+		if not text.strip():
+			st.error("Добавьте текст запроса, поле не может быть пустым")
+		else:
+			with open("frontend/test.txt", "w") as f:
+				f.write(text)
+				st.toast("Текст запроса обновлен", icon="✅")
