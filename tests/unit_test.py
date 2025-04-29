@@ -5,6 +5,8 @@ from PIL import Image
 import base64
 from pptx import Presentation
 from pptx.util import Inches
+from pptx.util import Inches, Pt
+from pptx.dml.color import RGBColor
 import tempfile
 import os
 
@@ -17,6 +19,20 @@ def create_simple_presentation(output_path):
     slide = prs.slides.add_slide(title_slide_layout)
     slide.shapes.title.text = "Тестовая презентация"
     slide.placeholders[1].text = "Создано для теста GenImage"
+
+    slide_layout = prs.slide_layouts[5]
+    slide2 = prs.slides.add_slide(slide_layout)
+    slide2.shapes.title.text = "Второй слайд"
+
+    textbox = slide2.shapes.add_textbox(Inches(1), Inches(2), Inches(4), Inches(1))
+    tf = textbox.text_frame
+    p = tf.add_paragraph()
+    run = p.add_run()
+    run.text = "Текст со шрифтом Arial"
+    run.font.name = "Arial"
+    run.font.size = Pt(18)
+    run.font.color.rgb = RGBColor(0, 0, 0)
+
     prs.save(output_path)
 
 @pytest.fixture
@@ -58,3 +74,18 @@ def test_unsupported_format():
     with pytest.raises(Exception) as exc:
         GenImage(BytesIO(b"dummy").getvalue(), "txt")
     assert "Not support this file format txt" in str(exc.value)
+
+def test_fonts_parsing_from_sample_pptx(sample_pptx_bytes):
+    gen = GenImage(sample_pptx_bytes, "pptx")
+
+    # check default fonts (major/minor)
+    assert isinstance(gen.default_fonts, dict)
+    assert "major" in gen.default_fonts or "minor" in gen.default_fonts
+
+    # Check parse fonts on slide
+    assert isinstance(gen.fonts, dict)
+    assert len(gen.fonts) >= 2
+
+    # Checking for Arial in the fonts of the second slide
+    all_fonts = [font for fonts in gen.fonts.values() for font in fonts]
+    assert any("Arial" in font for font in all_fonts if font)
