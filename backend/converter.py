@@ -23,6 +23,7 @@ class GenImage():
     default_fonts: Dict[str, str]
         Storage of standard fonts for the theme
     fonts: Dict[str, list]
+        A dictionary for fonts from slides. The key is the slide number, and the value is the font list.
     
     Methods
     -------
