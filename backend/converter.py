@@ -1,10 +1,15 @@
 from pdf2image import convert_from_bytes
 from PIL import Image
+from bs4 import BeautifulSoup
+from pptx.enum.shapes import PP_PLACEHOLDER_TYPE
+from pptx import Presentation
+from pptx.shapes.base import _PlaceholderFormat
 import subprocess
 import base64
 import io
 import tempfile
 import os
+import zipfile
 
 
 class GenImage():
@@ -15,6 +20,10 @@ class GenImage():
     ----------
     buffer: io.BytesIO
         buffer into which the image is loaded upon successful conversion
+    default_fonts: Dict[str, str]
+        Storage of standard fonts for the theme
+    fonts: Dict[str, list]
+        A dictionary for fonts from slides. The key is the slide number, and the value is the font list.
     
     Methods
     -------
@@ -22,6 +31,10 @@ class GenImage():
         Convert pptx to jpeg
     pdf(pdf_bytes: bytes):
         Convert pdf to jpeg
+    parse_default_fonts(path_pptx):
+        Parsing the standard fonts of the presentation theme
+    parse_fonts_on_slide(path_pptx):
+        Parsing custom fonts of slides
     base64() -> bytes:
         Get base64 bytes from buffer
 
@@ -31,12 +44,86 @@ class GenImage():
         Creates an image from the resulting byte array 
         '''
         self.buffer = io.BytesIO()
+        self.default_fonts = {}
+        self.fonts = {}
         # Automatically calling the converter, if the type is not supported, we throw an exception
         converter = getattr(self, file_format.lower(), lambda bytes: self.not_support(file_format))
         converter(bytes)
 
     def not_support(self, file_format: str):
         raise Exception(f"Not support this file format {file_format}")
+
+    def parse_default_fonts(self, path_pptx):
+        '''
+        Parsing the standard fonts of the presentation theme
+
+        Parameters
+        ----------
+            path_pptx: str
+                Path to pptx file
+        '''
+        with zipfile.ZipFile(path_pptx) as z:
+            theme_files = list(filter(lambda f: f.startswith("ppt/theme/") and f.endswith(".xml"), z.namelist()))
+            if len(theme_files) > 0:
+                with z.open(theme_files[0]) as theme:
+                    soup = BeautifulSoup(theme.read(), 'xml')
+
+                    major = soup.find('a:majorFont')
+                    minor = soup.find('a:minorFont')
+
+                    if major and major.find('a:latin'):
+                        self.default_fonts['major'] = major.find('a:latin')['typeface']
+                    if minor and minor.find('a:latin'):
+                        self.default_fonts['minor'] = minor.find('a:latin')['typeface']
+
+
+    # Called if there is no font in the placeholder.text
+    def get_theme_font(self, type: PP_PLACEHOLDER_TYPE) -> str | None:
+        '''
+        Take the font from the default theme
+        
+        Parameters
+        ----------
+            type: PP_PLACEHOLDER_TYPE
+                Placeholder location on the slide
+        '''
+        if 'minor' in self.default_fonts and type != PP_PLACEHOLDER_TYPE.TITLE:
+            return self.default_fonts['minor']
+        if 'major' in self.default_fonts and type == PP_PLACEHOLDER_TYPE.TITLE:
+            return self.default_fonts['major']
+        return None
+    
+    def parse_fonts_on_slide(self, path_pptx):
+        '''
+        Parsing custom fonts of slides
+
+        Parameters
+        ----------
+            path_pptx: str
+                Path to pptx file
+        '''
+        prs = Presentation(path_pptx)
+        
+        for slide_num, slide in enumerate(prs.slides, start=1):
+            slide_fonts = []
+
+            for shape in slide.shapes:
+                if not shape.has_text_frame:
+                    continue
+
+                # Return Enum PlaceholderType
+                # It is necessary to determine the position of the text on the slide
+                placeholder_type = shape.placeholder_format.type if shape.is_placeholder else None  
+
+                for paragraph in shape.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        # If there is no custom font, we try to get it from the theme.
+                        font_name = run.font.name if run.font.name is not None else self.get_theme_font(placeholder_type)
+
+                        slide_fonts.append(font_name)
+
+            if slide_fonts:
+                self.fonts[f"Слайд {slide_num}"] = slide_fonts
 
     # It is automatically invoked if necessary
     def pptx(self, pptx_bytes):
@@ -54,6 +141,9 @@ class GenImage():
 
             with open(pptx_path, "wb") as f:
                 f.write(pptx_bytes)
+
+            self.parse_default_fonts(pptx_path)
+            self.parse_fonts_on_slide(pptx_path)
 
             # Run libreoffice for convert pptx to pdf
             subprocess.run([
