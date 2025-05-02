@@ -9,6 +9,7 @@ from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 import tempfile
 import os
+import asyncio
 
 def create_simple_presentation(output_path):
     '''
@@ -89,3 +90,13 @@ def test_fonts_parsing_from_sample_pptx(sample_pptx_bytes):
     # Checking for Arial in the fonts of the second slide
     all_fonts = [font for fonts in gen.fonts.values() for font in fonts]
     assert any("Arial" in font for font in all_fonts if font)
+
+async def async_convert(sample_pptx_bytes):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, GenImage, sample_pptx_bytes, "pptx")
+
+@pytest.mark.asyncio
+async def test_asyncio_parallel(sample_pptx_bytes):
+    tasks = [async_convert(sample_pptx_bytes) for _ in range(3)]
+    results = await asyncio.gather(*tasks)
+    assert all(len(r.default_fonts) > 0 for r in results)
