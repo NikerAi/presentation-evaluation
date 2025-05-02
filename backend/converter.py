@@ -9,6 +9,7 @@ import base64
 import io
 import tempfile
 import os
+import pathlib
 import zipfile
 
 
@@ -136,8 +137,9 @@ class GenImage():
                 An array of bytes that may contain a pptx
         '''
         with tempfile.TemporaryDirectory() as tmpdir:
-            pptx_path = os.path.join(tmpdir, "presentation.pptx")
-            pdf_path = os.path.join(tmpdir, "presentation.pdf")
+            tmpdir_path = pathlib.Path(tmpdir)
+            pptx_path = tmpdir_path.joinpath("presentation.pptx")
+            pdf_path = tmpdir_path.joinpath("presentation.pdf")
 
             with open(pptx_path, "wb") as f:
                 f.write(pptx_bytes)
@@ -149,6 +151,7 @@ class GenImage():
             subprocess.run([
                 "libreoffice",
                 "--headless",
+                f"-env:UserInstallation={tmpdir_path.as_uri()}",
                 "--convert-to", "pdf",
                 "--outdir", tmpdir,
                 pptx_path
