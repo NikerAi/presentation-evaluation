@@ -1,6 +1,6 @@
 import streamlit as st
 from streamlit_theme import st_theme
-from streamlit.components.v1 import html
+from backend.llm_call import send_request
 
 # to start app run this command in terminal "streamlit run ./frontend/app.py"
 
@@ -29,13 +29,19 @@ with tab1:
 	st.header("Загрузка презентации")
 
 	# select models from these options (change names later)
-	options = ['Option 1', 'Option 2', 'Option 3']
+	models = {
+		"Meta: Llama 4 Maverick": "meta-llama/llama-4-maverick:free",
+		"Meta: Llama 4 Scout": "meta-llama/llama-4-scout:free",
+		"Google: Gemini 2.0 Flash Experimental": "google/gemini-2.0-flash-exp:free",
+		"Google: Gemma 3 27B": "google/gemma-3-27b-it:free",
+		"Qwen: Qwen2.5 VL 72B Instruct": "qwen/qwen2.5-vl-72b-instruct:free"
+	}
 
 	# allow user upload pdf and pptx formats only
 	uploaded_file = st.file_uploader("Загрузите презентацию или pdf", type=["pptx", "pdf"])
 
 	# stores user's model choice
-	selected_option = st.selectbox('Выберите модель:', options)
+	selected_model = st.selectbox('Выберите модель:', models.keys())
 
 	# ensures that user wants to send presentation for evaluation
 	user_consent = st.toggle("Подтверждаю обработку моей презентации")
@@ -51,11 +57,17 @@ with tab1:
 		# loading icon during evaluation time
 		with st.spinner('Пожалуйста, подожите окончания оцненивания'):
 			# insert here your processing function
-			response = "Готово"  # placeholder
+			response = send_request(
+				prompt="Опиши о чем говорится в презенации на каждом слайде не менне чем на 10000 символов, если хочешь напиши что-нибудь",
+				presentation=uploaded_file.getvalue(),
+				file_format=f"{uploaded_file.name.split(".")[-1]}",
+				model=models[selected_model],
+
+			)
 
 		# show download button
 		st.write('Оценка завершена, скачать отчет:')
-		st.download_button('Скачать', response)
+		st.write('Скачать', response)
 
 
 with tab2:
