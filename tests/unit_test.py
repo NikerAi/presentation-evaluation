@@ -10,6 +10,8 @@ from pptx.dml.color import RGBColor
 import tempfile
 import os
 import asyncio
+from streamlit.testing.v1 import AppTest
+from backend.llm_call import send_request
 
 def create_simple_presentation(output_path):
     '''
@@ -46,6 +48,11 @@ def sample_pptx_bytes():
         tmp.seek(0)
         data = tmp.read()
     return data
+
+
+@pytest.fixture
+def run_app():
+    return AppTest.from_file("../frontend/app.py", default_timeout=30).run()
 
 def test_pptx_conversion(sample_pptx_bytes):
     '''
@@ -100,3 +107,37 @@ async def test_asyncio_parallel(sample_pptx_bytes):
     tasks = [async_convert(sample_pptx_bytes) for _ in range(3)]
     results = await asyncio.gather(*tasks)
     assert all(len(r.default_fonts) > 0 for r in results)
+
+
+def test_show_prompt(run_app):
+    """
+    Checks if default prompt shown correctly
+    """
+
+    # at.tabs[1].text_area[0].input(prompt).run()
+    run_app.tabs[1].button[0].click().run()
+    assert run_app.session_state["prompt"][-10:] == " возможны."
+
+
+def test_save_prompt(run_app):
+    """
+    Checks if user's prompt saved correctly, and empty prompt raises an error
+    """
+    # Add new prompt
+    run_app.tabs[1].text_area[0].input("New prompt").run()
+    run_app.tabs[1].button[0].click().run()
+    assert run_app.session_state["prompt"] == "New prompt"
+    # Check if prompt is empty
+    run_app.tabs[1].text_area[0].input("     ").run()
+    run_app.tabs[1].button[0].click().run()
+    assert "Добавьте текст запроса, поле не может быть пустым" in run_app.error.values[0]
+
+
+def test_send_request(sample_pptx_bytes):
+    """
+    Send a request to llm and anticipate correct response
+    """
+    prompt = "В ответном сообщении отправь только текст с первого слайда через запятую и больше ничего!"
+    response = send_request(prompt=prompt, presentation=sample_pptx_bytes, file_format="pptx")
+    print(response)
+    assert response.choices[0].message.content == "Тестовая презентация, Создано для теста GenImage"
