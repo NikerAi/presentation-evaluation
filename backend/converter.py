@@ -178,10 +178,11 @@ class GenImage():
                 An array of bytes that may contain a pdf
         '''
         images = convert_from_bytes(pdf_bytes, thread_count=100)
-        sum_width = sum([img.width for img in images])
+        images = [image.resize((1024, 800)) for image in images]
+        max_width = max([img.width for img in images])
         max_height = max([img.height for img in images])
         # Create empty image for pasting
-        self.img = Image.new("RGB", (sum_width, max_height), color=(255, 255, 255))
+        self.img = Image.new("RGB", (max_width*len(images), max_height), color=(255, 255, 255))
         x_offset = 0
         # Construction all the slides into one picture
         for img in images:
@@ -194,7 +195,8 @@ class GenImage():
         Get base64 bytes from buffer
         '''
         return base64.b64encode(self.buffer.getvalue())
-    
+
+
 # For future changes towards safe conversion
 def convert_to_img(file: bytes, format: str) -> GenImage:
     '''

@@ -75,7 +75,7 @@ def process_presentation(uploaded_file, selected_model):
 		response = send_request(
 			prompt=st.session_state["prompt"],
 			presentation=uploaded_file.getvalue(),
-			file_format=f"{uploaded_file.name.split(".")[-1]}",
+			file_format=f"{uploaded_file.name.split('.')[-1]}",
 			model=MODELS[selected_model])
 		return response
 
