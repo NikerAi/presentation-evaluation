@@ -12,9 +12,10 @@ PAGE_CONFIG = {
 MODELS = {
 	"Meta: Llama 4 Maverick": "meta-llama/llama-4-maverick:free",
 	"Meta: Llama 4 Scout": "meta-llama/llama-4-scout:free",
-	"Google: Gemini 2.0 Flash Experimental": "google/gemini-2.0-flash-exp:free",
+	"Mistral: Mistral Small 3.1 24B": "mistralai/mistral-small-3.1-24b-instruct:free",
 	"Google: Gemma 3 27B": "google/gemma-3-27b-it:free",
-	"Qwen: Qwen2.5 VL 72B Instruct": "qwen/qwen2.5-vl-72b-instruct:free"
+	"Qwen: Qwen2.5 VL 72B Instruct": "qwen/qwen2.5-vl-72b-instruct:free",
+	"Google: Gemini 2.5 Pro Experimental": "google/gemini-2.5-pro-exp-03-25"
 }
 
 
@@ -50,9 +51,16 @@ def upload_tab():
 	selected_model = st.selectbox('Выберите модель:', MODELS.keys())
 	# checks if presentation was uploaded
 	if st.button("Отправить презентацию", disabled=not uploaded_file):
-		response = process_presentation(uploaded_file, selected_model)
+		try:
+			response = process_presentation(uploaded_file, selected_model)
+			return response.choices[0].message.content, uploaded_file.name
+		except Exception as e:
+			st.error(
+				f"""Во время выполнения запроса возникла ошибка.
+				Проверьте правильность загруженного документа или попробуйте воспользоваться другой моделью.
+				\n\nИнофрмация об ошибке: {e}"""
+			)
 
-		return response.choices[0].message.content, uploaded_file.name
 	return None, None
 
 
