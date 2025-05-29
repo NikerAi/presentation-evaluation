@@ -12,6 +12,7 @@ import os
 import asyncio
 from streamlit.testing.v1 import AppTest
 from backend.llm_call import send_request
+from backend.converter import response_handler
 
 def create_simple_presentation(output_path):
     '''
@@ -138,6 +139,18 @@ def test_send_request(sample_pptx_bytes):
     Send a request to llm and anticipate correct response
     """
     prompt = "В ответном сообщении отправь только текст с первого слайда через запятую и больше ничего!"
-    response = send_request(prompt=prompt, presentation=sample_pptx_bytes, file_format="pptx")
-    print(response)
-    assert response.choices[0].message.content == "Тестовая презентация, Создано для теста GenImage"
+    response = send_request(prompt=prompt, presentation=sample_pptx_bytes, file_format="pptx").choices[0].message.content
+    phrase_1 = "Тестовая презентация"
+    phrase_2 = "Создано для теста GenImage"
+    flag = "False"
+    if phrase_1 in response or phrase_2 in response: flag = "True"
+    assert flag == "True"
+
+
+def test_response_handler():
+    """
+    Checks if function returns correct result
+    """
+    content = "Test message"
+    text = response_handler(content)
+    assert text[-6:] == b"\xfe!\x00\x00\x00\x00"

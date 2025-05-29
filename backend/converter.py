@@ -11,6 +11,7 @@ import tempfile
 import os
 import pathlib
 import zipfile
+from pathlib import Path
 
 
 class GenImage():
@@ -77,7 +78,6 @@ class GenImage():
                     if minor and minor.find('a:latin'):
                         self.default_fonts['minor'] = minor.find('a:latin')['typeface']
 
-
     # Called if there is no font in the placeholder.text
     def get_theme_font(self, type: PP_PLACEHOLDER_TYPE) -> str | None:
         '''
@@ -93,7 +93,7 @@ class GenImage():
         if 'major' in self.default_fonts and type == PP_PLACEHOLDER_TYPE.TITLE:
             return self.default_fonts['major']
         return None
-    
+
     def parse_fonts_on_slide(self, path_pptx):
         '''
         Parsing custom fonts of slides
@@ -104,7 +104,7 @@ class GenImage():
                 Path to pptx file
         '''
         prs = Presentation(path_pptx)
-        
+
         for slide_num, slide in enumerate(prs.slides, start=1):
             slide_fonts = []
 
@@ -114,7 +114,7 @@ class GenImage():
 
                 # Return Enum PlaceholderType
                 # It is necessary to determine the position of the text on the slide
-                placeholder_type = shape.placeholder_format.type if shape.is_placeholder else None  
+                placeholder_type = shape.placeholder_format.type if shape.is_placeholder else None
 
                 for paragraph in shape.text_frame.paragraphs:
                     for run in paragraph.runs:
@@ -149,7 +149,7 @@ class GenImage():
 
             # Run libreoffice for convert pptx to pdf
             subprocess.run([
-                "libreoffice",
+                "soffice",
                 "--headless",
                 f"-env:UserInstallation={tmpdir_path.as_uri()}",
                 "--convert-to", "pdf",
@@ -161,7 +161,7 @@ class GenImage():
 
             with open(pdf_path, "rb") as f:
                 pdf_bytes = f.read()
-            
+
             os.remove(pdf_path)
 
             # Run converter pdf to img
@@ -178,7 +178,7 @@ class GenImage():
                 An array of bytes that may contain a pdf
         '''
         images = convert_from_bytes(pdf_bytes, thread_count=100)
-        images = [image.resize((1024, 800)) for image in images]
+        images = [image.resize((1440, 900)) for image in images]
         max_width = max([img.width for img in images])
         max_height = max([img.height for img in images])
         # Create empty image for pasting
@@ -210,3 +210,33 @@ def convert_to_img(file: bytes, format: str) -> GenImage:
             format/type of file that needs to be converted
     '''
     return GenImage(file, format)
+
+
+def response_handler(response):
+    """
+    Handle llm response, convert Markdown to docx
+
+    Parameters
+        ----------
+        response: str
+            String received from llm as response
+        name: str
+            Name of uploaded file
+    Returns
+		----------
+		bytes
+			content of docx file in bytes format
+    """
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        # Write markdown to a file
+        md_path = temp_path / "input.md"
+        with open(md_path, "w", encoding="utf-8") as md_file:
+            md_file.write(response)
+        # Create output DOCX path
+        docx_path = temp_path / "output.docx"
+        # Run pandoc conversion
+        subprocess.run(["pandoc", str(md_path), "-o", str(docx_path)], check=True)
+        # Read and return the DOCX content
+        with open(docx_path, "rb") as f:
+            return f.read()

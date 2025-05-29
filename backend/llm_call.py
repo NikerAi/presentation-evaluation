@@ -29,7 +29,10 @@ def send_request(prompt, presentation, file_format, model="meta-llama/llama-4-ma
 	converted_presentation = convert_to_img(presentation, file_format)
 	image = converted_presentation.base64().decode()
 	# get information about fonts on each slide (for pptx format only)
-	fonts = f", информация о шрифтах {str(converted_presentation.fonts)}"
+	if len(converted_presentation.fonts) > 0:
+		fonts = f", информация о шрифтах {str(converted_presentation.fonts)}"
+	else:
+		fonts = ""
 	# Prepare message content
 	content = [{"type": "text", "text": prompt + fonts}, {
 		"type": "image_url",

@@ -25,6 +25,8 @@ jobs:
         steps:
             - name: Install libreoffice
               run: sudo apt install -y libreoffice
+            - name: Install pandoc
+              run: sudo apt install -y pandoc
             - uses: actions/checkout@v4
             - name: Set up Python 3.10
               uses: actions/setup-python@v3

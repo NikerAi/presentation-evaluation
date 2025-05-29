@@ -14,10 +14,10 @@ def main():
 	# contains file uploader and process function
 	with tab1:
 		response, name = interface.upload_tab()
+
 		if response is not None:
-			with st.expander("Отчёт"):
-				st.write(response)
-			st.download_button("Скачать", response, f"{name.split('.')[0]}_результат.txt")
+			interface.response_download(response, name)
+
 	# contains default prompt and allows to change it
 	with tab2:
 		text = interface.show_prompt()
