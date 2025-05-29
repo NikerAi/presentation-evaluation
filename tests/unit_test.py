@@ -142,6 +142,7 @@ def test_send_request(sample_pptx_bytes):
     response = send_request(prompt=prompt, presentation=sample_pptx_bytes, file_format="pptx").choices[0].message.content
     phrase_1 = "Тестовая презентация"
     phrase_2 = "Создано для теста GenImage"
+    flag = "False"
     if phrase_1 in response or phrase_2 in response: flag = "True"
     assert flag == "True"
 
