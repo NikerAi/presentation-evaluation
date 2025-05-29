@@ -129,10 +129,8 @@ def response_download(response, name):
 	file_name = name.split('.')[0]
 	with st.expander("Отчет"):
 		st.write(response)
-	response_handler(response, name)
-	with open(f"temp_storage/{file_name}.docx", "rb") as f:
-		text = f.read()
-	os.remove(f"temp_storage/{file_name}.docx")
+	text = response_handler(response, name)
+
 	st.download_button(
 		label="Скачать отчет",
 		data=text,

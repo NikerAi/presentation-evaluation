@@ -92,7 +92,7 @@ class GenImage():
         if 'major' in self.default_fonts and type == PP_PLACEHOLDER_TYPE.TITLE:
             return self.default_fonts['major']
         return None
-    
+
     def parse_fonts_on_slide(self, path_pptx):
         '''
         Parsing custom fonts of slides
@@ -103,7 +103,7 @@ class GenImage():
                 Path to pptx file
         '''
         prs = Presentation(path_pptx)
-        
+
         for slide_num, slide in enumerate(prs.slides, start=1):
             slide_fonts = []
 
@@ -113,7 +113,7 @@ class GenImage():
 
                 # Return Enum PlaceholderType
                 # It is necessary to determine the position of the text on the slide
-                placeholder_type = shape.placeholder_format.type if shape.is_placeholder else None  
+                placeholder_type = shape.placeholder_format.type if shape.is_placeholder else None
 
                 for paragraph in shape.text_frame.paragraphs:
                     for run in paragraph.runs:
@@ -148,7 +148,7 @@ class GenImage():
 
             # Run libreoffice for convert pptx to pdf
             subprocess.run([
-                "libreoffice",
+                "soffice",
                 "--headless",
                 f"-env:UserInstallation={tmpdir_path.as_uri()}",
                 "--convert-to", "pdf",
@@ -160,7 +160,7 @@ class GenImage():
 
             with open(pdf_path, "rb") as f:
                 pdf_bytes = f.read()
-            
+
             os.remove(pdf_path)
 
             # Run converter pdf to img
@@ -221,6 +221,10 @@ def response_handler(response, name="default_name"):
             String received from llm as response
         name: str
             Name of uploaded file
+    Returns
+		----------
+		bytes
+			contest of docx file in bytes format
     """
     file_name = name.split('.')[0]
     os.makedirs("temp_storage", exist_ok=True)
@@ -229,4 +233,10 @@ def response_handler(response, name="default_name"):
         file.write(response)
 
     subprocess.run(["pandoc", f"temp_storage/{file_name}.md", "-o", docx_path], check=True)
+
+    with open(f"temp_storage/{file_name}.docx", "rb") as f:
+        text = f.read()
     os.remove(f"temp_storage/{file_name}.md")
+    os.remove(f"temp_storage/{file_name}.docx")
+
+    return text

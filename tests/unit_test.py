@@ -12,6 +12,7 @@ import os
 import asyncio
 from streamlit.testing.v1 import AppTest
 from backend.llm_call import send_request
+from backend.converter import response_handler
 
 def create_simple_presentation(output_path):
     '''
@@ -143,3 +144,18 @@ def test_send_request(sample_pptx_bytes):
     phrase_2 = "Создано для теста GenImage"
     if phrase_1 in response or phrase_2 in response: flag = "True"
     assert flag == "True"
+
+
+def test_response_handler():
+    """
+    Checks if all files were deleted after processing and docx bytes assigned to variable
+    """
+    os.makedirs("temp_storage", exist_ok=True)
+    content = "Test content"
+    name = "Test_unique_name.pptx"
+    text = response_handler(content, name=name)
+    assert len(text) > 0
+    files = os.listdir("temp_storage")
+    assert f"{name.split('.')[0]}.docx" not in files
+    assert f"{name.split('.')[0]}.md" not in files
+
