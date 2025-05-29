@@ -11,6 +11,7 @@ import tempfile
 import os
 import pathlib
 import zipfile
+from pathlib import Path
 
 
 class GenImage():
@@ -211,7 +212,7 @@ def convert_to_img(file: bytes, format: str) -> GenImage:
     return GenImage(file, format)
 
 
-def response_handler(response, name="default_name"):
+def response_handler(response):
     """
     Handle llm response, convert Markdown to docx
 
@@ -224,19 +225,18 @@ def response_handler(response, name="default_name"):
     Returns
 		----------
 		bytes
-			contest of docx file in bytes format
+			content of docx file in bytes format
     """
-    file_name = name.split('.')[0]
-    os.makedirs("temp_storage", exist_ok=True)
-    docx_path = f"temp_storage/{file_name}.docx"
-    with open(f"temp_storage/{file_name}.md", "w") as file:
-        file.write(response)
-
-    subprocess.run(["pandoc", f"temp_storage/{file_name}.md", "-o", docx_path], check=True)
-
-    with open(f"temp_storage/{file_name}.docx", "rb") as f:
-        text = f.read()
-    os.remove(f"temp_storage/{file_name}.md")
-    os.remove(f"temp_storage/{file_name}.docx")
-
-    return text
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        # Write markdown to a file
+        md_path = temp_path / "input.md"
+        with open(md_path, "w", encoding="utf-8") as md_file:
+            md_file.write(response)
+        # Create output DOCX path
+        docx_path = temp_path / "output.docx"
+        # Run pandoc conversion
+        subprocess.run(["pandoc", str(md_path), "-o", str(docx_path)], check=True)
+        # Read and return the DOCX content
+        with open(docx_path, "rb") as f:
+            return f.read()

@@ -129,7 +129,7 @@ def response_download(response, name):
 	file_name = name.split('.')[0]
 	with st.expander("Отчет"):
 		st.write(response)
-	text = response_handler(response, name)
+	text = response_handler(response)
 
 	st.download_button(
 		label="Скачать отчет",

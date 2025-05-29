@@ -149,14 +149,8 @@ def test_send_request(sample_pptx_bytes):
 
 def test_response_handler():
     """
-    Checks if all files were deleted after processing and docx bytes assigned to variable
+    Checks if function returns correct result
     """
-    os.makedirs("temp_storage", exist_ok=True)
-    content = "Test content"
-    name = "Test_unique_name.pptx"
-    text = response_handler(content, name=name)
-    assert len(text) > 0
-    files = os.listdir("temp_storage")
-    assert f"{name.split('.')[0]}.docx" not in files
-    assert f"{name.split('.')[0]}.md" not in files
-
+    content = "Test message"
+    text = response_handler(content)
+    assert text[-6:] == b"\x88$\x00\x00\x00\x00"
