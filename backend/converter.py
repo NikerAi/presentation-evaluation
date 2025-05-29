@@ -77,7 +77,6 @@ class GenImage():
                     if minor and minor.find('a:latin'):
                         self.default_fonts['minor'] = minor.find('a:latin')['typeface']
 
-
     # Called if there is no font in the placeholder.text
     def get_theme_font(self, type: PP_PLACEHOLDER_TYPE) -> str | None:
         '''
@@ -178,7 +177,7 @@ class GenImage():
                 An array of bytes that may contain a pdf
         '''
         images = convert_from_bytes(pdf_bytes, thread_count=100)
-        images = [image.resize((1024, 800)) for image in images]
+        images = [image.resize((1440, 900)) for image in images]
         max_width = max([img.width for img in images])
         max_height = max([img.height for img in images])
         # Create empty image for pasting
@@ -210,3 +209,24 @@ def convert_to_img(file: bytes, format: str) -> GenImage:
             format/type of file that needs to be converted
     '''
     return GenImage(file, format)
+
+
+def response_handler(response, name="default_name"):
+    """
+    Handle llm response, convert Markdown to docx
+
+    Parameters
+        ----------
+        response: str
+            String received from llm as response
+        name: str
+            Name of uploaded file
+    """
+    file_name = name.split('.')[0]
+    os.makedirs("temp_storage", exist_ok=True)
+    docx_path = f"temp_storage/{file_name}.docx"
+    with open(f"temp_storage/{file_name}.md", "w") as file:
+        file.write(response)
+
+    subprocess.run(["pandoc", f"temp_storage/{file_name}.md", "-o", docx_path], check=True)
+    os.remove(f"temp_storage/{file_name}.md")
