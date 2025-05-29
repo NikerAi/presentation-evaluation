@@ -1,6 +1,8 @@
 import streamlit as st
 from streamlit_theme import st_theme
 from backend.llm_call import send_request
+from backend.converter import response_handler
+import os
 
 # config settings
 PAGE_CONFIG = {
@@ -63,7 +65,6 @@ def upload_tab():
 
 	return None, None
 
-
 def process_presentation(uploaded_file, selected_model):
 	"""
 	Send a request to OpenAI
@@ -119,3 +120,22 @@ def save_prompt(text):
 			st.write(st.session_state["prompt"])
 			st.toast("Текст запроса обновлен", icon="✅")
 			st.session_state["prompt"] = text
+
+
+def response_download(response, name):
+	"""
+	Uses response_handler to convert Markdown to docx, and allows to download it
+	"""
+	file_name = name.split('.')[0]
+	with st.expander("Отчет"):
+		st.write(response)
+	response_handler(response, name)
+	with open(f"temp_storage/{file_name}.docx", "rb") as f:
+		text = f.read()
+	os.remove(f"temp_storage/{file_name}.docx")
+	st.download_button(
+		label="Скачать отчет",
+		data=text,
+		file_name=f"{file_name}_результат.docx",
+		mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	)
