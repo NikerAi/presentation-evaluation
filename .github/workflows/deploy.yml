@@ -1,6 +1,9 @@
 name: Deploy to Yandex Cloud
 
 on:
+    push:
+      branches:
+        - "deploy/**"
     workflow_run:
         workflows: ["Run pytest"] # Runs deploy if all tests passed
         branches: [main]
