@@ -1,11 +1,8 @@
 name: Deploy to Yandex Cloud
 
 on:
-    push:
-         branches:
-             - "deploy/**"
     workflow_run:
-        workflows: ["Run pytest"]  # Must match the name of the test workflow
+        workflows: ["Run pytest"]
         branches: [main]
         types:
           - completed
@@ -13,7 +10,7 @@ on:
 
 jobs:
     buildandpush:
-       # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
         runs-on: ubuntu-latest
         env:
             OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
