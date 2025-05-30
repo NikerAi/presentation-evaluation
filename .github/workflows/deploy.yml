@@ -2,10 +2,10 @@ name: Deploy to Yandex Cloud
 
 on:
     push:
-      branches:
-        - "deploy/**"
+         branches:
+             - "deploy/**"
     workflow_run:
-        workflows: ["Run pytest"] # Runs deploy if all tests passed
+        workflows: ["Run pytest"]  # Must match the name of the test workflow
         branches: [main]
         types:
           - completed
@@ -13,26 +13,27 @@ on:
 
 jobs:
     buildandpush:
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
         runs-on: ubuntu-latest
         env:
             OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
             IMAGE_TAG: ${{ github.sha }}
             CR_REPOSITORY: presentation-evaluation
             YANDEX_KEY: ${{ secrets.YANDEX_KEY }}
-            CR_REGISTRY: ${{ secrets.CR_ID }}
-
+            CR_REGISTRY: crp3k1kda45squl7ac4p
+        
         outputs:
             image_ref: ${{ steps.build_push.outputs.image_ref }}
-
+        
         steps:
             - uses: "actions/checkout@v4"
-
+            
             - name: "Login to Yandex Cloud Container Registry"
               id: login-cr
               uses: yc-actions/yc-cr-login@v3
               with:
                 yc-sa-json-credentials: ${{ secrets.YA_AUTHORIZED_KEY }}
-
+            
             - name: Build, tag, and push image
               id: build_push
               run: |
@@ -40,20 +41,20 @@ jobs:
                 echo "image_ref=$IMAGE_REF" >> $GITHUB_OUTPUT
                 docker build -t $IMAGE_REF .
                 docker push $IMAGE_REF
-
+    
     connect:
         runs-on: ubuntu-latest
         needs: [buildandpush]
         env:
             OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
             YANDEX_KEY: ${{ secrets.YANDEX_KEY }}
-
+        
         steps:
             - name: Connect to VM via SSH
               uses: appleboy/ssh-action@v1
               with:
-                host: ${{ secrets.HOST_IP }}
-                username: ${{ secrets.USERNAME }}
+                host: 62.84.122.115
+                username: user
                 key: ${{ secrets.SSH_KEY }}
                 passphrase: ${{ secrets.PASSPHRASE }}
                 port: 22
