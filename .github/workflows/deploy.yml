@@ -1,0 +1,66 @@
+name: Deploy to Yandex Cloud
+
+on:
+    workflow_run:
+        workflows: ["Run pytest"]
+        branches: [main]
+        types:
+          - completed
+    workflow_dispatch:
+
+jobs:
+    buildandpush:
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        runs-on: ubuntu-latest
+        env:
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+            IMAGE_TAG: ${{ github.sha }}
+            CR_REPOSITORY: presentation-evaluation
+            YANDEX_KEY: ${{ secrets.YANDEX_KEY }}
+            CR_REGISTRY: crp3k1kda45squl7ac4p
+        
+        outputs:
+            image_ref: ${{ steps.build_push.outputs.image_ref }}
+        
+        steps:
+            - uses: "actions/checkout@v4"
+            
+            - name: "Login to Yandex Cloud Container Registry"
+              id: login-cr
+              uses: yc-actions/yc-cr-login@v3
+              with:
+                yc-sa-json-credentials: ${{ secrets.YA_AUTHORIZED_KEY }}
+            
+            - name: Build, tag, and push image
+              id: build_push
+              run: |
+                IMAGE_REF="cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG"
+                echo "image_ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+                docker build -t $IMAGE_REF .
+                docker push $IMAGE_REF
+    
+    connect:
+        runs-on: ubuntu-latest
+        needs: [buildandpush]
+        env:
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+            YANDEX_KEY: ${{ secrets.YANDEX_KEY }}
+        
+        steps:
+            - name: Connect to VM via SSH
+              uses: appleboy/ssh-action@v1
+              with:
+                host: 62.84.122.115
+                username: user
+                key: ${{ secrets.SSH_KEY }}
+                passphrase: ${{ secrets.PASSPHRASE }}
+                port: 22
+                script: |
+                    sudo usermod -a -G docker $USER
+                    sudo chmod 777 /var/run/docker.sock
+                    echo "$YANDEX_KEY" | sudo docker login --username oauth --password-stdin cr.yandex
+                    # Stop and remove all containers
+                    sudo docker kill $(docker ps -q) 2>/dev/null || true
+                    sudo docker rm $(docker ps -a -q) 2>/dev/null || true
+                    # Run new container
+                    sudo docker run -d -p 80:8501 -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} ${{ needs.buildandpush.outputs.image_ref }}
