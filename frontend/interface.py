@@ -40,53 +40,58 @@ def configure_page():
 
 
 def upload_tab():
-	"""
-	take uploaded file, prompt and pass them to the process function
-	"""
-	st.header("Загрузка презентации")
-	# allow user upload pdf and pptx formats only
-	uploaded_file = st.file_uploader("Загрузите презентацию или pdf", type=["pptx", "pdf"])
-	# warns user about supported file type for font analysis
-	if uploaded_file is not None and uploaded_file.name.split(".")[-1] == "pdf":
-		st.warning("⚠️ Анализ шрифтов поддерживается только в формате pptx ⚠️")
-	# stores user's model choice
-	selected_model = st.selectbox('Выберите модель:', MODELS.keys())
-	# checks if presentation was uploaded
-	if st.button("Отправить презентацию", disabled=not uploaded_file):
-		try:
-			response = process_presentation(uploaded_file, selected_model)
-			return response.choices[0].message.content, uploaded_file.name
-		except Exception as e:
-			st.error(
-				f"""Во время выполнения запроса возникла ошибка.
-				Проверьте правильность загруженного документа или попробуйте воспользоваться другой моделью.
-				\n\nИнофрмация об ошибке: {e}"""
-			)
-
-	return None, None
+    """
+    Take uploaded file, prompt and pass them to the process function.
+    Returns
+    -------
+        tuple[str, bytes, bytes, str]
+            Response text, DOCX bytes, PDF bytes, and file name
+    """
+    st.header("Загрузка презентации")
+    # allow user upload pdf and pptx formats only
+    uploaded_file = st.file_uploader("Загрузите презентацию или pdf", type=["pptx", "pdf"])
+    # warns user about supported file type for font analysis
+    if uploaded_file is not None and uploaded_file.name.split(".")[-1] == "pdf":
+        st.warning("⚠️ Анализ шрифтов поддерживается только в формате pptx ⚠️")
+    # stores user's model choice
+    selected_model = st.selectbox('Выберите модель:', MODELS.keys())
+    # checks if presentation was uploaded
+    if st.button("Отправить презентацию", disabled=not uploaded_file):
+        try:
+            with st.spinner('Пожалуйста, дождитесь окончания оценивания', show_time=True):
+                response = process_presentation(uploaded_file, selected_model)
+                response_text = response.choices[0].message.content
+                docx_bytes, pdf_bytes = response_handler(response_text)
+                return response_text, docx_bytes, pdf_bytes, uploaded_file.name
+        except Exception as e:
+            st.error(
+                f"""Во время выполнения запроса возникла ошибка.
+                Проверьте правильность загруженного документа или попробуйте воспользоваться другой моделью.
+                \n\nИнформация об ошибке: {e}"""
+            )
+    return None, None, None, None
 
 def process_presentation(uploaded_file, selected_model):
-	"""
-	Send a request to OpenAI
+    """
+    Send a request to OpenAI
 
-	Parameters
-		----------
-		uploaded_file: bytes
-			An array of bytes from presentation uploaded by user
-		selected_model: str
-			Name of a model selected by user or default
-	Returns
-		----------
-		json
-			text information received from LLM
-	"""
-	with st.spinner('Пожалуйста, дождитесь окончания оцненивания', show_time=True):
-		response = send_request(
-			prompt=st.session_state["prompt"],
-			presentation=uploaded_file.getvalue(),
-			file_format=f"{uploaded_file.name.split('.')[-1]}",
-			model=MODELS[selected_model])
-		return response
+    Parameters
+    ----------
+        uploaded_file: bytes
+            An array of bytes from presentation uploaded by user
+        selected_model: str
+            Name of a model selected by user or default
+    Returns
+    ----------
+        json
+            text information received from LLM
+    """
+    response = send_request(
+        prompt=st.session_state["prompt"],
+        presentation=uploaded_file.getvalue(),
+        file_format=f"{uploaded_file.name.split('.')[-1]}",
+        model=MODELS[selected_model])
+    return response
 
 
 def show_prompt():
@@ -122,18 +127,26 @@ def save_prompt(text):
 			st.session_state["prompt"] = text
 
 
-def response_download(response, name):
-	"""
-	Uses response_handler to convert Markdown to docx, and allows to download it
-	"""
-	file_name = name.split('.')[0]
-	with st.expander("Отчет"):
-		st.write(response)
-	text = response_handler(response)
-
-	st.download_button(
-		label="Скачать отчет",
-		data=text,
-		file_name=f"{file_name}_результат.docx",
-		mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-	)
+def response_download(response, docx_bytes, pdf_bytes, name):
+    """
+    Uses response_handler to convert Markdown to DOCX and PDF, and allows downloading both
+    """
+    file_name = name.split('.')[0]
+    with st.expander("Отчет"):
+        st.markdown(response)
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        st.download_button(
+            label="Скачать отчет в DOCX",
+            data=docx_bytes,
+            file_name=f"{file_name}_результат.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    with col2:
+        st.download_button(
+            label="Скачать отчет в PDF",
+            data=pdf_bytes,
+            file_name=f"{file_name}_результат.pdf",
+            mime="application/pdf",
+        )

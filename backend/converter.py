@@ -214,18 +214,16 @@ def convert_to_img(file: bytes, format: str) -> GenImage:
 
 def response_handler(response):
     """
-    Handle llm response, convert Markdown to docx
+    Handle LLM response, convert Markdown to DOCX and PDF.
 
     Parameters
-        ----------
+    ----------
         response: str
-            String received from llm as response
-        name: str
-            Name of uploaded file
+            String received from LLM as response
     Returns
-		----------
-		bytes
-			content of docx file in bytes format
+    -------
+        tuple[bytes, bytes]
+            Content of DOCX and PDF files in bytes format
     """
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -235,8 +233,22 @@ def response_handler(response):
             md_file.write(response)
         # Create output DOCX path
         docx_path = temp_path / "output.docx"
-        # Run pandoc conversion
+        # Run pandoc conversion to DOCX
         subprocess.run(["pandoc", str(md_path), "-o", str(docx_path)], check=True)
-        # Read and return the DOCX content
+        # Read DOCX content
         with open(docx_path, "rb") as f:
-            return f.read()
+            docx_bytes = f.read()
+        # Convert DOCX to PDF
+        pdf_path = temp_path / "output.pdf"
+        subprocess.run([
+            "soffice",
+            "--headless",
+            f"-env:UserInstallation={temp_path.as_uri()}",
+            "--convert-to", "pdf",
+            "--outdir", str(temp_dir),
+            str(docx_path)
+        ], check=True)
+        # Read PDF content
+        with open(pdf_path, "rb") as f:
+            pdf_bytes = f.read()
+        return docx_bytes, pdf_bytes
