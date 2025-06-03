@@ -144,7 +144,7 @@ def test_send_request(sample_pptx_bytes):
     prompt_path = project_root / "frontend" / "default_prompt.txt"
     
     # Читаем актуальный промт из файла с кодировкой Windows-1251 (ANSI)
-    with open(prompt_path, "r", encoding="windows-1251") as f:
+    with open(prompt_path, "r", encoding="utf-8") as f:
         prompt = f.read()
     
     # Отправляем запрос с промтом и презентацией
