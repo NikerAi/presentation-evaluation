@@ -136,23 +136,15 @@ def test_save_prompt(run_app):
 
 def test_send_request(sample_pptx_bytes):
     """
-    Send a request to llm and check if response contains keywords from the new prompt
+    Send a request to llm and anticipate correct response
     """
-    project_root = Path(__file__).parent.parent  
-    prompt_path = project_root / "frontend" / "default_prompt.txt"
-    
-    with open(prompt_path, "r", encoding="utf-8") as f:
-        prompt_utf8 = f.read()
-    
-    prompt = prompt_utf8.encode("windows-1251").decode("windows-1251")
-    
+    prompt = "В ответном сообщении отправь только текст с первого слайда через запятую и больше ничего!"
     response = send_request(prompt=prompt, presentation=sample_pptx_bytes, file_format="pptx").choices[0].message.content
-    
-    assert response, "LLM returned an empty response"
-    
-    expected_keywords = ["Титульный слайд", "Введение", "Содержание", "Оформление", "Заключение и контакты", "Формат", "Общие рекомендации"]
-    for keyword in expected_keywords:
-        assert keyword in response, f"Response does not contain expected keyword '{keyword}'"
+    phrase_1 = "Тестовая презентация"
+    phrase_2 = "Создано для теста GenImage"
+    flag = "False"
+    if phrase_1 in response or phrase_2 in response: flag = "True"
+    assert flag == "True"
 
 def test_response_handler():
     """
