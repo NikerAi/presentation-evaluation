@@ -134,23 +134,22 @@ def test_save_prompt(run_app):
     run_app.tabs[1].button[0].click().run()
     assert "Добавьте текст запроса, поле не может быть пустым" in run_app.error.values[0]
 
-
 def test_send_request(sample_pptx_bytes):
     """
     Send a request to llm and check if response contains keywords from the new prompt
     """
-    # Формируем путь к default_prompt.txt относительно корня проекта
-    project_root = Path(__file__).parent.parent  # Переходим из tests/ в корень проекта
+    project_root = Path(__file__).parent.parent  
     prompt_path = project_root / "frontend" / "default_prompt.txt"
     
-    # Читаем актуальный промт из файла с кодировкой Windows-1251 (ANSI)
     with open(prompt_path, "r", encoding="utf-8") as f:
-        prompt = f.read()
+        prompt_utf8 = f.read()
     
-    # Отправляем запрос с промтом и презентацией
+    prompt = prompt_utf8.encode("windows-1251").decode("windows-1251")
+    
     response = send_request(prompt=prompt, presentation=sample_pptx_bytes, file_format="pptx").choices[0].message.content
     
-    # Проверяем наличие ключевых слов из промта в ответе
+    assert response, "LLM returned an empty response"
+    
     expected_keywords = ["Титульный слайд", "Введение", "Содержание", "Оформление", "Заключение и контакты", "Формат", "Общие рекомендации"]
     for keyword in expected_keywords:
         assert keyword in response, f"Response does not contain expected keyword '{keyword}'"
