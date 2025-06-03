@@ -117,7 +117,7 @@ def test_show_prompt(run_app):
 
     # at.tabs[1].text_area[0].input(prompt).run()
     run_app.tabs[1].button[0].click().run()
-    assert run_app.session_state["prompt"][-10:] == " возможны."
+    assert run_app.session_state["prompt"][-10:] == "улучшения]"
 
 
 def test_save_prompt(run_app):
@@ -136,15 +136,19 @@ def test_save_prompt(run_app):
 
 def test_send_request(sample_pptx_bytes):
     """
-    Send a request to llm and anticipate correct response
+    Send a request to llm and check if response contains keywords from the new prompt
     """
-    prompt = "В ответном сообщении отправь только текст с первого слайда через запятую и больше ничего!"
+    # Читаем актуальный промт из файла default_prompt.txt
+    with open("../frontend/default_prompt.txt", "r", encoding="utf-8") as f:
+        prompt = f.read()
+    
+    # Отправляем запрос с промтом и презентацией
     response = send_request(prompt=prompt, presentation=sample_pptx_bytes, file_format="pptx").choices[0].message.content
-    phrase_1 = "Тестовая презентация"
-    phrase_2 = "Создано для теста GenImage"
-    flag = "False"
-    if phrase_1 in response or phrase_2 in response: flag = "True"
-    assert flag == "True"
+    
+    # Проверяем наличие ключевых слов из промта в ответе (разделы отчёта)
+    expected_keywords = ["Титульный слайд", "Введение", "Содержание", "Оформление", "Заключение и контакты", "Формат", "Общие рекомендации"]
+    for keyword in expected_keywords:
+        assert keyword in response, f"Response does not contain expected keyword '{keyword}'"
 
 
 def test_response_handler():
