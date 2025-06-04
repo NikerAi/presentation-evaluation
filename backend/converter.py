@@ -43,7 +43,7 @@ class GenImage():
     '''
     def __init__(self, bytes: bytes, file_format: str):
         '''
-        Creates an image from the resulting byte array 
+        Creates an image from the resulting byte array
         '''
         self.buffer = io.BytesIO()
         self.default_fonts = {}

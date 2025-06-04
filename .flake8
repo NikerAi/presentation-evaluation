@@ -5,4 +5,4 @@ exclude =
     __pycache__
     .github
     .venv
-extend-ignore = F401, E501
+extend-ignore = F401, E501, W293

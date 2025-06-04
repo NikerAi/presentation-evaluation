@@ -4,7 +4,6 @@ from backend.converter import GenImage
 from PIL import Image
 import base64
 from pptx import Presentation
-from pptx.util import Inches
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 import tempfile
@@ -14,6 +13,7 @@ from streamlit.testing.v1 import AppTest
 from backend.llm_call import send_request
 from backend.converter import response_handler
 from pathlib import Path
+
 
 def create_simple_presentation(output_path):
     '''
@@ -40,10 +40,11 @@ def create_simple_presentation(output_path):
 
     prs.save(output_path)
 
+
 @pytest.fixture
 def sample_pptx_bytes():
     '''
-    Get bytes from simple pptx 
+    Get bytes from simple pptx
     '''
     with tempfile.NamedTemporaryFile(suffix=".pptx", delete=True) as tmp:
         create_simple_presentation(tmp.name)
@@ -55,6 +56,7 @@ def sample_pptx_bytes():
 @pytest.fixture
 def run_app():
     return AppTest.from_file("../frontend/app.py", default_timeout=30).run()
+
 
 def test_pptx_conversion(sample_pptx_bytes):
     '''
@@ -77,6 +79,7 @@ def test_base64_output(sample_pptx_bytes):
     # Check JPEG magic bytes
     assert decoded[:2] == b'\xff\xd8'
 
+
 def test_unsupported_format():
     '''
     Checking the reaction to an unsupported format
@@ -84,6 +87,7 @@ def test_unsupported_format():
     with pytest.raises(Exception) as exc:
         GenImage(BytesIO(b"dummy").getvalue(), "txt")
     assert "Not support this file format txt" in str(exc.value)
+
 
 def test_fonts_parsing_from_sample_pptx(sample_pptx_bytes):
     gen = GenImage(sample_pptx_bytes, "pptx")
@@ -100,9 +104,11 @@ def test_fonts_parsing_from_sample_pptx(sample_pptx_bytes):
     all_fonts = [font for fonts in gen.fonts.values() for font in fonts]
     assert any("Arial" in font for font in all_fonts if font)
 
+
 async def async_convert(sample_pptx_bytes):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, GenImage, sample_pptx_bytes, "pptx")
+
 
 @pytest.mark.asyncio
 async def test_asyncio_parallel(sample_pptx_bytes):
@@ -134,6 +140,7 @@ def test_save_prompt(run_app):
     run_app.tabs[1].button[0].click().run()
     assert "Добавьте текст запроса, поле не может быть пустым" in run_app.error.values[0]
 
+
 def test_send_request(sample_pptx_bytes):
     """
     Send a request to llm and anticipate correct response
@@ -143,8 +150,10 @@ def test_send_request(sample_pptx_bytes):
     phrase_1 = "Тестовая презентация"
     phrase_2 = "Создано для теста GenImage"
     flag = "False"
-    if phrase_1 in response or phrase_2 in response: flag = "True"
+    if phrase_1 in response or phrase_2 in response:
+        flag = "True"
     assert flag == "True"
+
 
 def test_response_handler():
     """
