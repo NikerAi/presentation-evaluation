@@ -1,0 +1,8 @@
+[flake8]
+exclude =
+    .git
+    .pytest_cache
+    __pycache__
+    .github
+    .venv
+extend-ignore = F401, E501
